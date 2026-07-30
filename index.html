@@ -1,85 +1,288 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Interactive EMS hardware procurement process map with owner, risk, and handoff visibility." />
-  <title>EMS Hardware Procurement Process</title>
-  <link rel="stylesheet" href="css/styles.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EMS Hardware Procurement Process</title>
+<style>
+:root {
+  --bg: #f5f7fb;
+  --panel: rgba(255,255,255,.92);
+  --ink: #172033;
+  --muted: #667085;
+  --line: #94a3b8;
+  --blue: #2563eb;
+  --blue2: #e8f0ff;
+  --green: #16a34a;
+  --amber: #d97706;
+  --red: #dc2626;
+  --purple: #7c3aed;
+  --shadow: 0 18px 45px rgba(15, 23, 42, .12);
+  --radius: 18px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: Inter, Segoe UI, Arial, sans-serif; color: var(--ink);
+  background: radial-gradient(circle at top left, #e8f0ff 0, transparent 27rem), linear-gradient(135deg, #f8fafc, #eef2f7);
+}
+.app { max-width: 1800px; margin: 0 auto; padding: 24px; }
+.header {
+  display: grid; grid-template-columns: 1.5fr .9fr; gap: 18px; align-items: stretch; margin-bottom: 18px;
+}
+.hero, .controls, .side, .canvas { background: var(--panel); border: 1px solid rgba(148,163,184,.28); box-shadow: var(--shadow); border-radius: var(--radius); }
+.hero { padding: 24px; position: relative; overflow: hidden; }
+.hero:after { content:""; position:absolute; right:-80px; top:-80px; width:260px; height:260px; border-radius:50%; background: rgba(37,99,235,.12); }
+h1 { margin: 0 0 8px; font-size: clamp(26px, 3vw, 42px); letter-spacing: -.03em; }
+.subtitle { color: var(--muted); line-height: 1.5; max-width: 900px; }
+.badges { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+.badge { font-size: 12px; font-weight:700; padding:7px 10px; border-radius:999px; background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; }
+.controls { padding: 18px; display:grid; gap:14px; }
+.controls h2 { margin:0; font-size:17px; }
+.control-row { display:flex; flex-wrap:wrap; gap:8px; }
+button, select { border:1px solid #cbd5e1; background:#fff; color:#172033; border-radius:12px; padding:10px 12px; font-weight:700; cursor:pointer; }
+button:hover, select:hover { border-color: var(--blue); }
+button.active { background: var(--blue); color:white; border-color:var(--blue); }
+.legend { display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:var(--muted); }
+.dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+.main { display:grid; grid-template-columns: minmax(760px, 1fr) 360px; gap:18px; align-items:start; }
+.canvas { padding: 12px; overflow:auto; min-height: 700px; }
+svg { width:100%; height:auto; aspect-ratio: 1330 / 805; }
+.edge { fill:none; stroke: var(--line); stroke-width: 2.4; marker-end: url(#arrow); opacity:.78; transition:.2s; }
+.edge-label { font-size: 12px; font-weight:800; fill:#475569; paint-order: stroke; stroke:#fff; stroke-width:4px; }
+.node { cursor:pointer; filter: drop-shadow(0 8px 10px rgba(15,23,42,.10)); transition:.2s; }
+.node rect, .node polygon, .node ellipse { transition:.2s; }
+.node text { pointer-events:none; }
+.node-title { font-size: 14px; font-weight: 800; fill:#0f172a; }
+.node-meta { font-size: 11px; font-weight: 700; fill:#64748b; }
+.node-num { font-size: 12px; font-weight:900; fill:#fff; }
+.decision-title { font-size: 11px; font-weight:800; fill:#0f172a; }
+
+.node:hover rect, .node:hover polygon, .node:hover ellipse, .node.selected rect, .node.selected polygon, .node.selected ellipse { stroke:#2563eb; stroke-width:3; }
+.dim { opacity:.18; }
+.highlight { opacity:1 !important; stroke:#2563eb !important; stroke-width:4 !important; }
+.side { padding: 20px; position: sticky; top: 18px; }
+.side h2 { margin: 0 0 6px; font-size: 22px; letter-spacing:-.02em; }
+.side .owner { display:inline-flex; padding:7px 10px; border-radius:999px; background:#f1f5f9; color:#334155; font-size:12px; font-weight:800; margin:8px 0 14px; }
+.detail-card { border:1px solid #e2e8f0; border-radius:14px; padding:14px; margin-top:12px; background:#fff; }
+.detail-card h3 { margin:0 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
+.detail-card p, .detail-card li { color:#334155; line-height:1.45; font-size:14px; }
+.risk-pill { display:inline-flex; align-items:center; gap:7px; padding:8px 10px; border-radius:10px; font-weight:900; font-size:13px; }
+.low { background:#ecfdf5; color:#166534; } .medium { background:#fffbeb; color:#92400e; } .high { background:#fef2f2; color:#991b1b; }
+.tooltip { position: fixed; display:none; z-index:10; max-width:330px; background:#0f172a; color:#fff; border-radius:14px; padding:12px 14px; box-shadow:0 18px 40px rgba(0,0,0,.24); pointer-events:none; }
+.tooltip b { display:block; margin-bottom:6px; } .tooltip span { color:#cbd5e1; font-size:12px; }
+.footer { color:#64748b; font-size:12px; margin-top:12px; text-align:center; }
+@media (max-width: 1100px) { .header, .main { grid-template-columns: 1fr; } .side { position: static; } }
+</style>
 </head>
 <body>
-  <a class="skip-link" href="#processMap">Skip to process map</a>
+<div class="app">
+  <section class="header">
+    <div class="hero">
+      <h1>EMS Hardware Procurement Process</h1>
+      <div class="subtitle">Interactive process map translating the sketch and one-page brief into a governed workflow from booked order, BOM validation, quote approval, PR/PO execution, inbound receipt, installation pickup, and internal closure.</div>
+      <div class="badges">
+        <span class="badge">Hover or click any task</span><span class="badge">Decision gates highlighted</span><span class="badge">Owner + risk visibility</span><span class="badge">No external dependencies</span>
+      </div>
+    </div>
+    <div class="controls">
+      <h2>Process controls</h2>
+      <div class="control-row">
+        <button id="btnAll" class="active">Show all</button>
+        <button id="btnCritical">Critical path</button>
+        <button id="btnDecisions">Decision gates</button>
+      </div>
+      <select id="ownerFilter"><option value="all">Filter by owner: All</option><option value="IBX Team">IBX Team</option><option value="Presales">Presales</option><option value="Procurement">Procurement</option><option value="Project Team">Project Team</option><option value="Project Team + Presales">Project Team + Presales</option><option value="Project Team + VM">Project Team + VM</option><option value="Supplier + Vendor Management">Supplier + Vendor Management</option><option value="Vendor Management">Vendor Management</option></select>
+      <div class="legend"><span><i class="dot" style="background:#16a34a"></i>Low risk</span><span><i class="dot" style="background:#d97706"></i>Medium risk</span><span><i class="dot" style="background:#dc2626"></i>High risk</span><span><i class="dot" style="border-radius:2px;background:#7c3aed"></i>Decision gate</span></div>
+    </div>
+  </section>
 
-  <main class="app" aria-labelledby="pageTitle">
-    <header class="header">
-      <section class="hero" aria-label="Process overview">
-        <p class="eyebrow">Interactive workflow brief</p>
-        <h1 id="pageTitle">EMS Hardware Procurement Process</h1>
-        <p class="subtitle">
-          A governed workflow from booked order through BOM validation, quote approval,
-          PR/PO execution, inbound receipt, installation pickup, and internal closure.
-        </p>
-        <div class="badges" aria-label="Application highlights">
-          <span class="badge">Click any task</span>
-          <span class="badge">Decision gates highlighted</span>
-          <span class="badge">Owner and risk visibility</span>
-          <span class="badge">Repository-ready package</span>
-        </div>
-      </section>
+  <section class="main">
+    <div class="canvas">
+      <svg viewBox="-285 0 1330 805" preserveAspectRatio="xMidYMid meet" aria-label="EMS hardware procurement interactive process map">
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#94a3b8" /></marker>
+        </defs>
+        <g id="edges"></g>
+        <g id="nodes"></g>
+      </svg>
+    </div>
+    <aside class="side" id="detailPanel">
+      <h2>Select a task</h2>
+      <div class="owner">Hover or click a process box</div>
+      <div class="detail-card"><h3>How to use</h3><p>Move the cursor over a task to preview description, owner, and potential risk. Click a task to lock the detail view and highlight connected dependencies.</p></div>
+      <div class="detail-card"><h3>Owner Directory</h3><select id="roleSelector"><option value="">Select owner...</option><option>Presales</option><option>Project Team</option><option>Procurement Team</option><option>Vendor Management</option><option>IBX Team</option></select><div id="roleDetails" style="margin-top:10px;font-size:14px;color:#334155"></div></div><div class="detail-card"><h3>Operating rule</h3><p>Do not submit PR/PO until both BOM scope and quote scope are explicitly validated by the Project Team.</p></div>
+    </aside>
+  </section>
+  <div class="footer">Built from the EMS hardware procurement sketch and process brief. Keep owner accountability explicit at every handoff.</div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+<script>
+const nodes = [{"id": "start", "num": "1", "title": "Order booked", "owner": "Presales", "type": "start", "risk": "low", "desc": "Customer order is approved and entered.", "x": 70, "y": 50}, {"id": "config", "num": "2", "title": "Order configured", "owner": "Presales", "type": "task", "risk": "medium", "desc": "Hardware configuration and initial BOM are prepared.", "x": 70, "y": 155}, {"id": "bom", "num": "3", "title": "BOM reviewed", "owner": "Project Team", "type": "task", "risk": "high", "desc": "BOM is checked against customer scope, design, dependencies, and install requirements.", "x": 70, "y": 260}, {"id": "scope", "num": "4", "title": "BOM aligns with scope?", "owner": "Project Team", "type": "decision", "risk": "high", "desc": "If BOM aligns, proceed. If not, determine whether order restart or additional procurement case is required.", "x": 70, "y": 385}, {"id": "restart_decision", "num": "4A", "title": "New order needed?", "owner": "Project Team + Presales", "type": "decision", "risk": "medium", "desc": "Decision point for whether scope variance requires Presales to restart ordering or whether a procurement case can cover the gap.", "x": -150, "y": 385}, {"id": "restart", "num": "4B", "title": "Presales restart ordering", "owner": "Presales", "type": "task", "risk": "high", "desc": "Presales restarts the order when the commercial scope must change before procurement can continue.", "x": -150, "y": 240}, {"id": "case", "num": "4C", "title": "Create additional procurement case", "owner": "Project Team", "type": "task", "risk": "medium", "desc": "A separate procurement case is created when additional hardware is needed without requiring full commercial order restart.", "x": -150, "y": 525}, {"id": "quote_req", "num": "5", "title": "Request supplier quotes", "owner": "Procurement", "type": "task", "risk": "medium", "desc": "Approved suppliers are asked for price, availability, and lead time.", "x": 70, "y": 525}, {"id": "quote_val", "num": "6", "title": "Validate quotes", "owner": "Project Team", "type": "task", "risk": "high", "desc": "Project team confirms supplier quote matches the approved scope and technical requirements.", "x": 70, "y": 650}, {"id": "quote_decision", "num": "6A", "title": "Quotes align with scope?", "owner": "Project Team", "type": "decision", "risk": "high", "desc": "Reject and rework any quote that misses required model, quantity, ETA, support, warranty, or accessory requirements.", "x": 330, "y": 650}, {"id": "prpo", "num": "7", "title": "Submit PR / PO request", "owner": "Vendor Management", "type": "task", "risk": "medium", "desc": "VM submits PR/PO and manages supplier acknowledgement.", "x": 560, "y": 525}, {"id": "eta", "num": "8", "title": "Supplier ETA confirmed", "owner": "Supplier + Vendor Management", "type": "task", "risk": "high", "desc": "Supplier provides ETA. VM tracks acknowledgement, lead time, and delivery risk against the installation window.", "x": 560, "y": 390}, {"id": "ticket", "num": "8A", "title": "Create inbound shipment ticket", "owner": "Vendor Management", "type": "task", "risk": "medium", "desc": "VM creates the inbound shipment ticket so receiving teams have visibility before hardware arrives.", "x": 560, "y": 255}, {"id": "receive", "num": "9", "title": "Receive shipment and update ticket", "owner": "IBX Team", "type": "task", "risk": "medium", "desc": "IBX receives shipment, verifies delivery, and updates the receiving ticket.", "x": 800, "y": 255}, {"id": "pickup", "num": "10", "title": "Project pickup for installation", "owner": "Project Team", "type": "task", "risk": "medium", "desc": "Project team picks up hardware for installation and confirms installation readiness.", "x": 800, "y": 390}, {"id": "close", "num": "10A", "title": "Close internal case", "owner": "Vendor Management", "type": "task", "risk": "low", "desc": "VM confirms completion and closes the internal case after hardware handoff is complete.", "x": 800, "y": 525}, {"id": "end", "num": "END", "title": "Procurement flow complete", "owner": "Project Team + VM", "type": "end", "risk": "low", "desc": "Hardware is received, ready for installation, and the internal procurement case is closed.", "x": 800, "y": 650}];
+const edges = [["start", "config", ""], ["config", "bom", ""], ["bom", "scope", ""], ["scope", "quote_req", "YES"], ["scope", "restart_decision", "NO"], ["restart_decision", "restart", "YES"], ["restart", "start", "rebook"], ["restart_decision", "case", "NO"], ["case", "quote_req", ""], ["quote_req", "quote_val", ""], ["quote_val", "quote_decision", ""], ["quote_decision", "quote_req", "NO"], ["quote_decision", "prpo", "YES"], ["prpo", "eta", ""], ["eta", "ticket", ""], ["ticket", "receive", ""], ["receive", "pickup", ""], ["pickup", "close", ""], ["close", "end", ""]];
+const nodeById = Object.fromEntries(nodes.map(n => [n.id, n]));
+const riskColor = {low:'#16a34a', medium:'#d97706', high:'#dc2626'};
+const nodeLayer = document.getElementById('nodes');
+const edgeLayer = document.getElementById('edges');
+const panel = document.getElementById('detailPanel');
+const tip = document.getElementById('tooltip');
+let selected = null;
+let mode = 'all';
 
-      <section class="controls" aria-labelledby="controlsTitle">
-        <h2 id="controlsTitle">Process controls</h2>
-        <div class="control-row" role="group" aria-label="Map views">
-          <button id="btnAll" class="active" type="button" aria-pressed="true">Show all</button>
-          <button id="btnCritical" type="button" aria-pressed="false">Critical path</button>
-          <button id="btnDecisions" type="button" aria-pressed="false">Decision gates</button>
-        </div>
-        <label class="field-label" for="ownerFilter">Filter by owner</label>
-        <select id="ownerFilter">
-          <option value="all">All owners</option>
-        </select>
-        <div class="legend" aria-label="Risk legend">
-          <span><i class="dot low-dot"></i>Low risk</span>
-          <span><i class="dot medium-dot"></i>Medium risk</span>
-          <span><i class="dot high-dot"></i>High risk</span>
-          <span><i class="dot decision-dot"></i>Decision gate</span>
-        </div>
-      </section>
-    </header>
+function wrapText(text, maxChars) {
+  const words = text.split(' '); const lines = []; let line = '';
+  words.forEach(w => { if ((line + ' ' + w).trim().length > maxChars) { lines.push(line); line = w; } else line = (line + ' ' + w).trim(); });
+  if (line) lines.push(line); return lines.slice(0,3);
+}
+function makePath(a,b) {
+  const boxW = 190, boxH = 70, diamondH = 100;
+  const aCx = a.x + 95, aCy = a.y + (a.type === 'decision' ? 50 : 35);
+  const bCx = b.x + 95, bCy = b.y + (b.type === 'decision' ? 50 : 35);
+  const dx = bCx - aCx, dy = bCy - aCy;
+  let sx, sy, ex, ey;
 
-    <section class="main-layout">
-      <section class="map-card" aria-labelledby="mapTitle">
-        <div class="map-card-header">
-          <div>
-            <h2 id="mapTitle">Process map</h2>
-            <p>Use mouse or keyboard focus to inspect tasks. Click to lock details.</p>
-          </div>
-          <button id="btnReset" type="button" class="secondary-button">Reset selection</button>
-        </div>
-        <div class="canvas" id="processMap">
-          <svg viewBox="-285 0 1330 805" preserveAspectRatio="xMidYMid meet" role="img" aria-label="EMS hardware procurement interactive process map">
-            <defs>
-              <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-                <path d="M0,0 L0,6 L9,3 z" fill="#94a3b8"></path>
-              </marker>
-            </defs>
-            <g id="edges"></g>
-            <g id="nodes"></g>
-          </svg>
-        </div>
-      </section>
+  // Special routing: 4B Presales Restart Ordering should exit from top-center and enter Task 1 from the left side.
+  if (a.id === 'restart' && b.id === 'start') {
+    const sx = a.x + 95;          // center top of 4B
+    const sy = a.y - 8;
+    const ex = b.x;               // left side of Task 1
+    const ey = b.y + 35;          // center of Task 1
+    const midX = ex - 55;
+    return `M ${sx} ${sy} L ${sx} ${ey} L ${midX} ${ey} L ${ex} ${ey}`;
+  }
 
-      <aside class="side-panel" id="detailPanel" aria-live="polite"></aside>
-    </section>
+  // Special routing: Task 6 Validate quotes should point into the bottom tip of decision 6A.
+  // This makes the validation-to-decision handoff visually unambiguous.
+  if (a.id === 'quote_val' && b.id === 'quote_decision') {
+    sx = a.x + boxW + 8;          // right edge of Task 6
+    sy = a.y + boxH - 8;          // lower-right exit from Task 6
+    ex = b.x + 95;                // center x of diamond 6A
+    ey = b.y + diamondH + 2;      // bottom tip of diamond 6A, kept inside canvas
+    const midX = sx + 70;
+    const midY = Math.min(ey + 16, 768);
+    return `M ${sx} ${sy} L ${midX} ${sy} L ${midX} ${midY} L ${ex} ${midY} L ${ex} ${ey}`;
+  }
 
-    <footer class="footer">
-      Built from the EMS hardware procurement sketch and process brief. Keep owner accountability explicit at every handoff.
-    </footer>
-  </main>
+  if (Math.abs(dx) > Math.abs(dy)) {
+    // horizontal routing: start/end from side edges
+    sx = dx > 0 ? a.x + boxW + 8 : a.x - 8;
+    sy = aCy;
+    ex = dx > 0 ? b.x - 8 : b.x + boxW + 8;
+    ey = bCy;
+    const midX = sx + (ex - sx) / 2;
+    return `M ${sx} ${sy} L ${midX} ${sy} L ${midX} ${ey} L ${ex} ${ey}`;
+  } else {
+    // vertical routing: start/end from top or bottom edges
+    const aBottom = a.y + (a.type === 'decision' ? diamondH : boxH) + 8;
+    const aTop = a.y - 8;
+    const bTop = b.y - 8;
+    const bBottom = b.y + (b.type === 'decision' ? diamondH : boxH) + 8;
+    sx = aCx; sy = dy > 0 ? aBottom : aTop;
+    ex = bCx; ey = dy > 0 ? bTop : bBottom;
+    const midY = sy + (ey - sy) / 2;
+    return `M ${sx} ${sy} L ${sx} ${midY} L ${ex} ${midY} L ${ex} ${ey}`;
+  }
+}
+function drawEdges() {
+  edgeLayer.innerHTML='';
+  edges.forEach(([from,to,label], i) => {
+    const a=nodeById[from], b=nodeById[to];
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', makePath(a,b)); path.setAttribute('class','edge'); path.dataset.from=from; path.dataset.to=to; path.id='edge'+i; edgeLayer.appendChild(path);
+    if(label) {
+      const text=document.createElementNS('http://www.w3.org/2000/svg','text');
+      text.setAttribute('class','edge-label'); text.setAttribute('x',(a.x+b.x)/2+72); text.setAttribute('y',(a.y+b.y)/2+12); text.textContent=label; edgeLayer.appendChild(text);
+    }
+  });
+}
+function drawNodes() {
+  nodeLayer.innerHTML='';
+  nodes.forEach(n => {
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('class','node'); g.dataset.id=n.id; g.setAttribute('transform',`translate(${n.x},${n.y})`);
+    const fill = n.type==='decision' ? '#faf5ff' : n.type==='start' || n.type==='end' ? '#ecfdf5' : '#ffffff';
+    const stroke = n.type==='decision' ? '#7c3aed' : '#cbd5e1';
+    if(n.type==='decision') {
+      const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon'); poly.setAttribute('points','95,0 190,50 95,100 0,50'); poly.setAttribute('fill',fill); poly.setAttribute('stroke',stroke); poly.setAttribute('stroke-width','2'); g.appendChild(poly);
+    } else if(n.type==='start' || n.type==='end') {
+      const el=document.createElementNS('http://www.w3.org/2000/svg','ellipse'); el.setAttribute('cx','95'); el.setAttribute('cy','35'); el.setAttribute('rx','92'); el.setAttribute('ry','35'); el.setAttribute('fill',fill); el.setAttribute('stroke',stroke); el.setAttribute('stroke-width','2'); g.appendChild(el);
+    } else {
+      const rect=document.createElementNS('http://www.w3.org/2000/svg','rect'); rect.setAttribute('width','190'); rect.setAttribute('height','70'); rect.setAttribute('rx','15'); rect.setAttribute('fill',fill); rect.setAttribute('stroke',stroke); rect.setAttribute('stroke-width','2'); g.appendChild(rect);
+    }
+    const badge=document.createElementNS('http://www.w3.org/2000/svg','circle'); badge.setAttribute('cx','18'); badge.setAttribute('cy','18'); badge.setAttribute('r','15'); badge.setAttribute('fill',riskColor[n.risk]); g.appendChild(badge);
+    const num=document.createElementNS('http://www.w3.org/2000/svg','text'); num.setAttribute('x','18'); num.setAttribute('y','22'); num.setAttribute('text-anchor','middle'); num.setAttribute('class','node-num'); num.textContent=n.num; g.appendChild(num);
+    const lines=wrapText(n.title, 22);
+    lines.forEach((line,idx)=>{ const t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('x','95'); t.setAttribute('y', n.type==='decision' ? 39+idx*15 : 31+idx*15); t.setAttribute('text-anchor','middle'); t.setAttribute('class', n.type==='decision' ? 'decision-title' : 'node-title'); t.textContent=line; g.appendChild(t); });
+    const meta=document.createElementNS('http://www.w3.org/2000/svg','text'); meta.setAttribute('x','95'); meta.setAttribute('y', n.type==='decision' ? 78 : 62); meta.setAttribute('text-anchor','middle'); meta.setAttribute('class','node-meta'); meta.textContent=n.owner; g.appendChild(meta);
+    g.addEventListener('mouseenter', e => { showTip(e,n); updatePanel(n,false); highlight(n.id); });
+    g.addEventListener('mousemove', e => moveTip(e));
+    g.addEventListener('mouseleave', e => { tip.style.display='none'; if(!selected) { clearHighlight(); resetPanel(); } else { highlight(selected); updatePanel(nodeById[selected],true); } });
+    g.addEventListener('click', e => { selected = selected===n.id ? null : n.id; if(selected) { updatePanel(n,true); highlight(n.id); } else { clearHighlight(); resetPanel(); } });
+    nodeLayer.appendChild(g);
+  });
+}
+function riskText(r) { return r[0].toUpperCase()+r.slice(1)+' risk'; }
+function updatePanel(n, locked) {
+  const risks = {
+    low:'Normal governance risk. Keep standard handoff evidence and case notes current.',
+    medium:'Watch for handoff lag, missing ticket updates, lead-time variance, or unclear ownership.',
+    high:'Potential schedule exposure. Validate scope, ETA, technical fit, and escalation path before proceeding.'
+  };
+  panel.innerHTML = `<h2>${n.title}</h2><div class="owner">Owner: ${n.owner} ${locked?'• locked':''}</div>
+  <div class="detail-card"><h3>Task description</h3><p>${n.desc}</p></div>
+  <div class="detail-card"><h3>Potential risk</h3><span class="risk-pill ${n.risk}"><i class="dot" style="background:${riskColor[n.risk]}"></i>${riskText(n.risk)}</span><p>${risks[n.risk]}</p></div>
+  <div class="detail-card"><h3>Connected handoffs</h3><ul>${connected(n.id).map(x=>`<li>${x}</li>`).join('')}</ul></div>${ownerDirectoryHtml()} `;
+  bindOwnerDirectory();
+}
+function resetPanel() {
+  panel.innerHTML = `<h2>Select a task</h2><div class="owner">Hover or click a process box</div><div class="detail-card"><h3>How to use</h3><p>Move the cursor over a task to preview description, owner, and potential risk. Click a task to lock the detail view and highlight connected dependencies.</p></div><div class="detail-card"><h3>Owner Directory</h3><select id="roleSelector"><option value="">Select owner...</option><option>Presales</option><option>Project Team</option><option>Procurement Team</option><option>Vendor Management</option><option>IBX Team</option></select><div id="roleDetails" style="margin-top:10px;font-size:14px;color:#334155"></div></div><div class="detail-card"><h3>Operating rule</h3><p>Do not submit PR/PO until both BOM scope and quote scope are explicitly validated by the Project Team.</p></div>`;
+  bindOwnerDirectory();
+}
+function connected(id) {
+  const out=[]; edges.forEach(([f,t,l])=>{ if(f===id) out.push(`Next: ${nodeById[t].title}${l?` (${l})`:''}`); if(t===id) out.push(`Previous: ${nodeById[f].title}${l?` (${l})`:''}`); }); return out.length?out:['No direct dependencies.'];
+}
+function showTip(e,n) { tip.innerHTML=`<b>${n.title}</b><span>Owner: ${n.owner} • ${riskText(n.risk)}</span><br>${n.desc}`; tip.style.display='block'; moveTip(e); }
+function moveTip(e) { tip.style.left=(e.clientX+18)+'px'; tip.style.top=(e.clientY+18)+'px'; }
+function clearHighlight() { document.querySelectorAll('.node,.edge').forEach(el=>el.classList.remove('dim','highlight','selected')); applyMode(); }
+function highlight(id) {
+  document.querySelectorAll('.node,.edge').forEach(el=>{ el.classList.add('dim'); el.classList.remove('highlight','selected'); });
+  document.querySelector(`.node[data-id="${id}"]`)?.classList.add('selected'); document.querySelector(`.node[data-id="${id}"]`)?.classList.remove('dim');
+  edges.forEach(([f,t])=>{ if(f===id||t===id) { document.querySelector(`.node[data-id="${f}"]`)?.classList.remove('dim'); document.querySelector(`.node[data-id="${t}"]`)?.classList.remove('dim'); document.querySelectorAll(`.edge[data-from="${f}"][data-to="${t}"]`).forEach(e=>{e.classList.remove('dim'); e.classList.add('highlight');}); } });
+}
+function setActive(btn) { document.querySelectorAll('button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+function applyMode() {
+  if(mode==='critical') { const critical=['start','config','bom','scope','quote_req','quote_val','quote_decision','prpo','eta','ticket','receive','pickup','close','end']; document.querySelectorAll('.node').forEach(g=>{ if(!critical.includes(g.dataset.id)) g.classList.add('dim'); }); }
+  if(mode==='decisions') { document.querySelectorAll('.node').forEach(g=>{ if(nodeById[g.dataset.id].type!=='decision') g.classList.add('dim'); }); }
+}
+document.getElementById('btnAll').onclick=e=>{ mode='all'; selected=null; clearHighlight(); setActive(e.target); resetPanel(); };
+document.getElementById('btnCritical').onclick=e=>{ mode='critical'; selected=null; clearHighlight(); setActive(e.target); };
+document.getElementById('btnDecisions').onclick=e=>{ mode='decisions'; selected=null; clearHighlight(); setActive(e.target); };
+document.getElementById('ownerFilter').onchange=e=>{
+  selected=null; clearHighlight(); const val=e.target.value;
+  if(val!=='all') document.querySelectorAll('.node').forEach(g=>{ if(nodeById[g.dataset.id].owner!==val) g.classList.add('dim'); });
+};
 
-  <div class="tooltip" id="tooltip" role="tooltip"></div>
+const ownerRoles={
+"Presales":{role:"Order accuracy, scope translation, BOM creation and order configuration.",done:"Booked order and BOM accurately reflect approved customer scope."},
+"Project Team":{role:"BOM review, scope validation, quote approval, pickup and installation readiness.",done:"Hardware is technically correct and ready for installation."},
+"Procurement Team":{role:"Supplier engagement, quote collection, price and lead-time sourcing.",done:"Valid supplier quote package available for validation."},
+"Vendor Management":{role:"PR/PO execution, ETA tracking, inbound ticket creation and case closure.",done:"PO acknowledged, shipment tracked and case closed."},
+"IBX Team":{role:"Receiving, delivery verification and secure staging.",done:"Shipment received and available for project pickup."}
+};
+function ownerDirectoryHtml() {
+  return `<div class="detail-card"><h3>Owner Directory</h3><select id="roleSelector"><option value="">Select owner...</option><option>Presales</option><option>Project Team</option><option>Procurement Team</option><option>Vendor Management</option><option>IBX Team</option></select><div id="roleDetails" style="margin-top:10px;font-size:14px;color:#334155"></div></div>`;
+}
+function bindOwnerDirectory() {
+  const sel=document.getElementById('roleSelector');
+  if(!sel) return;
+  sel.onchange=function(){
+   const d=document.getElementById('roleDetails');
+   const r=ownerRoles[this.value];
+   d.innerHTML=r?`<b>Role description</b><br>${r.role}<br><br><b>Responsibilities / Definition of Done</b><br>${r.done}`:'';
+  }
+}
 
-  <script src="js/data.js"></script>
-  <script src="js/app.js"></script>
+bindOwnerDirectory();
+
+drawEdges(); drawNodes();
+</script>
 </body>
 </html>
