@@ -1,7 +1,7 @@
 window.PROCESS_DATA = {
   nodes: [
     { id: "start", num: "1", title: "Order booked", owner: "Presales", type: "start", risk: "low", desc: "Customer order is approved and entered.", x: 70, y: 50 },
-    { id: "config", num: "2", title: "Order configured", owner: "Presales", type: "task", risk: "medium", desc: "Hardware configuration and initial BOM are prepared.", x: 70, y: 155 },
+    { id: "config", num: "2", title: "Order configured", owner: "Presales", type: "task", risk: "medium", desc: "Order configuration and initial BOM are prepared.", x: 70, y: 155 },
     { id: "bom", num: "3", title: "BOM reviewed", owner: "Project Team", type: "task", risk: "high", desc: "BOM is checked against customer scope, design, dependencies, and install requirements.", x: 70, y: 260 },
     { id: "scope", num: "4", title: "BOM aligns with scope?", owner: "Project Team", type: "decision", risk: "high", desc: "If BOM aligns, proceed. If not, determine whether order restart or additional procurement case is required.", x: 70, y: 385 },
     { id: "restart_decision", num: "4A", title: "New order needed?", owner: "Project Team + Presales", type: "decision", risk: "medium", desc: "Decision point for whether scope variance requires Presales to restart ordering or whether a procurement case can cover the gap.", x: -150, y: 385 },
